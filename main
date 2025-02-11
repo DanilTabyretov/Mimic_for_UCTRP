@@ -1,0 +1,231 @@
+task.wait()
+local UIS = game:GetService("UserInputService")
+local CAS = game:GetService("ContextActionService")
+local plr = game:GetService("Players").LocalPlayer
+
+local CD = false
+
+local Change_Name_Event = workspace.EventsRPGUI.ChangeNameEvent
+local Change_Bio_Event = workspace.EventsRPGUI.ChangeBioEvent
+
+local Gui = Instance.new("ScreenGui", plr.PlayerGui)
+script.Parent = Gui
+Gui.ResetOnSpawn = false
+
+local Frame = Instance.new("Frame", Gui)
+Frame.BackgroundColor3 = Color3.new(0,0,0)
+Frame.BackgroundTransparency = 0.25
+Frame.Position = UDim2.new(0.832,0,0.129,0)
+Frame.Size = UDim2.new(0.142,0,0.594,0)
+Instance.new("UICorner", Frame)
+
+local Morph_List_Frame = Instance.new("ScrollingFrame", Frame)
+Morph_List_Frame.BackgroundColor3 = Color3.fromRGB(22,22,22)
+Morph_List_Frame.Position = UDim2.new(0.063,0,0.054,0)
+Morph_List_Frame.Size = UDim2.new(0.874,0,0.91,0)
+Morph_List_Frame.CanvasSize = UDim2.new(0,0,100,0)
+Instance.new("UIListLayout", Morph_List_Frame)
+
+local Search_Box = Instance.new("TextBox", Frame)
+Search_Box.BackgroundColor3 = Color3.fromRGB(86,86,86)
+Search_Box.Position = UDim2.new(0.019,0,-0.096,0)
+Search_Box.Size = UDim2.new(0.959,0,0.066,0)
+Search_Box.PlaceholderColor3 = Color3.fromRGB(170,170,170)
+Search_Box.PlaceholderText = "Morph name?"
+Search_Box.TextColor3 = Color3.new(1,1,1)
+Search_Box.TextStrokeTransparency = 0
+Search_Box.Text = ""
+Search_Box.TextScaled = true
+Search_Box.Font = Enum.Font.Arcade
+
+local Current_Target_Label = Instance.new("TextLabel", Frame)
+Current_Target_Label.BackgroundTransparency = 1
+Current_Target_Label.Position = UDim2.new(0.005,0,1.033,0)
+Current_Target_Label.Size = UDim2.new(0.977,0,0.165,0)
+Current_Target_Label.TextColor3 = Color3.new(1,1,1)
+Current_Target_Label.TextStrokeTransparency = 0.5
+Current_Target_Label.Text = "Current Target: nil"
+Current_Target_Label.TextScaled = true
+Current_Target_Label.Font = Enum.Font.Arcade
+
+local Current_Morph_of_Target_Label = Current_Target_Label:Clone()
+Current_Morph_of_Target_Label.Position = UDim2.new(0.012,0,1.258,0)
+Current_Morph_of_Target_Label.Text = "Current morph of Target: nil"
+Current_Morph_of_Target_Label.Parent = Frame
+
+local Morphs_List = {}
+local Players_List = {}
+local Mimic_Power_Enabled = false
+local Target = nil
+local Current_Target = nil
+
+local Highlight = Instance.new("Highlight", plr.PlayerGui)
+Highlight.FillTransparency = 1
+Highlight.Adornee = nil
+
+function Get_Mouse_Origin()
+	local MouseLocation = UIS:GetMouseLocation()
+	local MouseOrigin = workspace.CurrentCamera:ViewportPointToRay(MouseLocation.X,MouseLocation.Y)
+
+	return MouseOrigin
+end
+
+function firetouchinterest(Entity, Toucher)
+	local Old_Pos = Entity.CFrame
+	Entity.CFrame = Toucher.CFrame
+	Entity.CanCollide = false
+	func = Entity.Touched:Connect(function(hit)
+		if hit and hit == Toucher then
+			Entity.CFrame = Old_Pos
+			func:Disconnect()
+		end
+	end)
+end
+
+function Copy_Animate(Char)
+	local New_Animate = Char:FindFirstChild("Animate")
+	if New_Animate then
+		plr.Character:FindFirstChild("Animate"):Destroy()
+		New_Animate:Clone().Parent = plr.Character
+	end
+end
+
+function Steal_Bio_and_Name(Char)
+	Change_Name_Event:FireServer(Char.Head.OverheadName.TextLabel.Text)
+	Change_Bio_Event:FireServer(Char.Head.OverheadBio.TextLabel.Text)
+end
+
+for i,char in pairs(workspace:GetDescendants()) do
+	if char:IsA("Model") then
+		local MrphPad = char:FindFirstChild("MrphPad") or char:FindFirstChild("Button") or char:FindFirstChild("HalloweenPad")
+		if MrphPad and MrphPad:IsA("BasePart") then
+			table.insert(Morphs_List,MrphPad)
+			MrphPad.Touched:Connect(function(hit)
+				if hit and hit.Parent:FindFirstChildOfClass("Humanoid") then
+					local new_plr = game:GetService("Players"):GetPlayerFromCharacter(hit.Parent)
+					Players_List[new_plr] = MrphPad
+				end
+			end)
+
+			local MrphButton = Instance.new("TextButton", Morph_List_Frame)
+			MrphButton.BackgroundColor3 = Color3.fromRGB(47,47,47)
+			MrphButton.Size = UDim2.new(1,0,0.002,0)
+			MrphButton.TextColor3 = Color3.new(1,1,1)
+			MrphButton.TextStrokeTransparency = 0
+			MrphButton.TextScaled = true
+			MrphButton.Font = Enum.Font.Arcade
+			MrphButton.Text = char.Name
+
+			MrphButton.MouseButton1Down:Connect(function()
+				if Current_Target then
+					local p = game:GetService("Players"):GetPlayerFromCharacter(Current_Target)
+					Players_List[p] = MrphPad
+					Current_Morph_of_Target_Label.Text = "Current morph of Target: "..char.Name
+				end
+			end)
+		end
+	end
+end
+
+Search_Box:GetPropertyChangedSignal("Text"):Connect(function()
+	for i,button in pairs(Morph_List_Frame:GetChildren()) do
+		if button:IsA("TextButton") then
+			if string.find(string.lower(button.Text),string.lower(Search_Box.Text)) then
+				button.Visible = true
+			else
+				button.Visible = false
+			end
+		end
+	end
+end)
+
+game:GetService("Players").PlayerRemoving:Connect(function(p)
+	Players_List[p] = nil
+end)
+
+print("Морфы были загружены в таблицу!")
+
+function Enable_Mode()
+	if CD then return end
+	CD = true
+	Mimic_Power_Enabled = not Mimic_Power_Enabled
+	Gui.Enabled = Mimic_Power_Enabled
+	task.wait(0.7)
+	CD = false
+end
+
+function Destroy_Script()
+	if CD then return end
+	CD = true
+	Mimic_Power_Enabled = 1
+	CAS:UnbindAction("Enable")
+	CAS:UnbindAction("Disable")
+	CAS:UnbindAction("Became_to_Target")
+	Gui:Destroy()
+end
+
+function Became_to_Target()
+	if CD then return end
+	CD = true
+	if Current_Target then
+		local p = game:GetService("Players"):GetPlayerFromCharacter(Current_Target)
+		if Players_List[p] then
+			firetouchinterest(Players_List[p],plr.Character.HumanoidRootPart)
+		end
+		Copy_Animate(Current_Target)
+		Steal_Bio_and_Name(Current_Target)
+	end
+	task.wait(0.7)
+	CD = false
+end
+
+CAS:BindAction("Enable",Enable_Mode,true,Enum.KeyCode.G)
+CAS:BindAction("Disable",Destroy_Script,true,Enum.KeyCode.U)
+CAS:BindAction("Became_to_Target",Became_to_Target,true,Enum.KeyCode.R)
+
+CAS:SetTitle("Enable","Вкл/выкл мимика")
+CAS:SetTitle("Disable","Отключить мимика")
+CAS:SetTitle("Became_to_Target","Стать жертвой")
+
+CAS:SetPosition("Enable",UDim2.new(0,0,0,0))
+CAS:SetPosition("Disable",UDim2.new(0.4,0,0,0))
+CAS:SetPosition("Enable",UDim2.new(0,0,0.4,0))
+
+UIS.InputBegan:Connect(function(input,g)
+	if g or Mimic_Power_Enabled == 1 then return end
+	
+	if input.UserInputType == (Enum.UserInputType.MouseButton1 or Enum.UserInputType.Touch) then
+		if Target then
+			Current_Target = Target
+			Current_Target_Label.Text = "Current Target: "..tostring(Current_Target)
+			local p = game:GetService("Players"):GetPlayerFromCharacter(Current_Target)
+			Current_Morph_of_Target_Label.Text = "Current morph of Target: "..tostring(Players_List[p])
+		end
+	end
+end)
+
+game:GetService("RunService").Stepped:Connect(function()
+	if not Mimic_Power_Enabled or Mimic_Power_Enabled == 1 then Highlight.Adornee = nil Target = nil return end
+
+	local Mouse_Origin = Get_Mouse_Origin()
+	local Raycast = workspace:Raycast(Mouse_Origin.Origin,Mouse_Origin.Direction * 100000)
+
+	if Raycast and Raycast.Instance then
+		local Hum = Raycast.Instance.Parent:FindFirstChildOfClass("Humanoid") or Raycast.Instance.Parent.Parent:FindFirstChildOfClass("Humanoid")
+		if not Hum then Highlight.Adornee = nil Target = nil return end
+
+		Target = Hum.Parent
+		Highlight.Adornee = Target
+
+		local p = game:GetService("Players"):GetPlayerFromCharacter(Hum.Parent)
+
+		if not Players_List[p] then
+			Highlight.OutlineColor = Color3.new(0.5,0.5,0.5)
+		else
+			Highlight.OutlineColor = Color3.new(1,1,1)
+		end
+	else
+		Highlight.Adornee = nil
+		Target = nil
+	end
+end)
