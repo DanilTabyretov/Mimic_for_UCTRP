@@ -188,9 +188,9 @@ CAS:SetPosition("Disable",UDim2.new(0.4,0,0,0))
 CAS:SetPosition("Enable",UDim2.new(0,0,0.4,0))
 
 UIS.InputBegan:Connect(function(input,g)
-	if g or Mimic_Power_Enabled == (false or 1) then return end
+	if g or not Mimic_Power_Enabled or Mimic_Power_Enabled == 1 then return end
 	
-	if input.UserInputType == (Enum.UserInputType.MouseButton1 or Enum.UserInputType.Touch) then
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		--if Target then
 			local Mouse_Origin = Get_Mouse_Origin()
 			local Raycast = workspace:Raycast(Mouse_Origin.Origin,Mouse_Origin.Direction * 100000)
