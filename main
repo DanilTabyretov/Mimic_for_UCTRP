@@ -59,10 +59,6 @@ local Mimic_Power_Enabled = false
 local Target = nil
 local Current_Target = nil
 
-local Highlight = Instance.new("Highlight", plr.PlayerGui)
-Highlight.FillTransparency = 1
-Highlight.Adornee = nil
-
 function Get_Mouse_Origin()
 	local MouseLocation = UIS:GetMouseLocation()
 	local MouseOrigin = workspace.CurrentCamera:ViewportPointToRay(MouseLocation.X,MouseLocation.Y)
@@ -192,40 +188,26 @@ CAS:SetPosition("Disable",UDim2.new(0.4,0,0,0))
 CAS:SetPosition("Enable",UDim2.new(0,0,0.4,0))
 
 UIS.InputBegan:Connect(function(input,g)
-	if g or Mimic_Power_Enabled == 1 then return end
+	if g or Mimic_Power_Enabled == (false or 1) then return end
 	
 	if input.UserInputType == (Enum.UserInputType.MouseButton1 or Enum.UserInputType.Touch) then
-		if Target then
+		--if Target then
+			local Mouse_Origin = Get_Mouse_Origin()
+			local Raycast = workspace:Raycast(Mouse_Origin.Origin,Mouse_Origin.Direction * 100000)
+
+			if Raycast and Raycast.Instance then
+				local Hum = Raycast.Instance.Parent:FindFirstChildOfClass("Humanoid") or Raycast.Instance.Parent.Parent:FindFirstChildOfClass("Humanoid")
+				if not Hum then Target = nil return end
+
+				Target = Hum.Parent
+			else
+				Target = nil
+			end
+			
 			Current_Target = Target
 			Current_Target_Label.Text = "Current Target: "..tostring(Current_Target)
 			local p = game:GetService("Players"):GetPlayerFromCharacter(Current_Target)
 			Current_Morph_of_Target_Label.Text = "Current morph of Target: "..tostring(Players_List[p])
-		end
-	end
-end)
-
-game:GetService("RunService").Stepped:Connect(function()
-	if not Mimic_Power_Enabled or Mimic_Power_Enabled == 1 then Highlight.Adornee = nil Target = nil return end
-
-	local Mouse_Origin = Get_Mouse_Origin()
-	local Raycast = workspace:Raycast(Mouse_Origin.Origin,Mouse_Origin.Direction * 100000)
-
-	if Raycast and Raycast.Instance then
-		local Hum = Raycast.Instance.Parent:FindFirstChildOfClass("Humanoid") or Raycast.Instance.Parent.Parent:FindFirstChildOfClass("Humanoid")
-		if not Hum then Highlight.Adornee = nil Target = nil return end
-
-		Target = Hum.Parent
-		Highlight.Adornee = Target
-
-		local p = game:GetService("Players"):GetPlayerFromCharacter(Hum.Parent)
-
-		if not Players_List[p] then
-			Highlight.OutlineColor = Color3.new(0.5,0.5,0.5)
-		else
-			Highlight.OutlineColor = Color3.new(1,1,1)
-		end
-	else
-		Highlight.Adornee = nil
-		Target = nil
+		--end
 	end
 end)
