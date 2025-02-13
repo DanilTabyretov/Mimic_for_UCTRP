@@ -11,6 +11,7 @@ local Change_Bio_Event = workspace.EventsRPGUI.ChangeBioEvent
 local Gui = Instance.new("ScreenGui", plr.PlayerGui)
 script.Parent = Gui
 Gui.ResetOnSpawn = false
+Gui.Enabled = false
 
 local Frame = Instance.new("Frame", Gui)
 Frame.BackgroundColor3 = Color3.new(0,0,0)
@@ -59,6 +60,10 @@ local Mimic_Power_Enabled = false
 local Target = nil
 local Current_Target = nil
 
+local Highlight = Instance.new("Highlight", plr.PlayerGui)
+Highlight.FillTransparency = 1
+Highlight.Adornee = nil
+
 function Get_Mouse_Origin()
 	local MouseLocation = UIS:GetMouseLocation()
 	local MouseOrigin = workspace.CurrentCamera:ViewportPointToRay(MouseLocation.X,MouseLocation.Y)
@@ -79,10 +84,16 @@ function firetouchinterest(Entity, Toucher)
 end
 
 function Copy_Animate(Char)
-	local New_Animate = Char:FindFirstChild("Animate")
-	if New_Animate then
-		plr.Character:FindFirstChild("Animate"):Destroy()
-		New_Animate:Clone().Parent = plr.Character
+	local Target_Animate = Char:FindFirstChild("Animate")
+	local Your_Animate = plr.Character:FindFirstChild("Animate")
+	for i,b in pairs(Target_Animate:GetChildren()) do
+		if b:IsA("StringValue") and Your_Animate:FindFirstChild(b.Name) then
+			for i,b2 in pairs(b:GetChildren()) do
+				if Your_Animate:FindFirstChild(b.Name):FindFirstChild(b2.Name) then
+					Your_Animate:FindFirstChild(b.Name):FindFirstChild(b2.Name).AnimationId = b2.AnimationId
+				end
+			end
+		end
 	end
 end
 
@@ -168,46 +179,60 @@ function Became_to_Target()
 		if Players_List[p] then
 			firetouchinterest(Players_List[p],plr.Character.HumanoidRootPart)
 		end
-		Copy_Animate(Current_Target)
+		delay(1.25,function() Copy_Animate(Current_Target) end)
 		Steal_Bio_and_Name(Current_Target)
 	end
 	task.wait(0.7)
 	CD = false
 end
 
-CAS:BindAction("Enable",Enable_Mode,true,Enum.KeyCode.G)
+CAS:BindAction("Enable",Enable_Mode,true,Enum.KeyCode.Q)
 CAS:BindAction("Disable",Destroy_Script,true,Enum.KeyCode.U)
 CAS:BindAction("Became_to_Target",Became_to_Target,true,Enum.KeyCode.R)
 
 CAS:SetTitle("Enable","Вкл/выкл мимика")
-CAS:SetTitle("Disable","Отключить мимика")
-CAS:SetTitle("Became_to_Target","Стать жертвой")
+CAS:SetTitle("Disable","Удалить мимика")
+CAS:SetTitle("Became_to_Target","Превращение")
 
 CAS:SetPosition("Enable",UDim2.new(0,0,0,0))
 CAS:SetPosition("Disable",UDim2.new(0.4,0,0,0))
 CAS:SetPosition("Enable",UDim2.new(0,0,0.4,0))
 
 UIS.InputBegan:Connect(function(input,g)
-	if g or not Mimic_Power_Enabled or Mimic_Power_Enabled == 1 then return end
+	if g or Mimic_Power_Enabled == 1 then return end
 	
 	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		--if Target then
-			local Mouse_Origin = Get_Mouse_Origin()
-			local Raycast = workspace:Raycast(Mouse_Origin.Origin,Mouse_Origin.Direction * 100000)
-
-			if Raycast and Raycast.Instance then
-				local Hum = Raycast.Instance.Parent:FindFirstChildOfClass("Humanoid") or Raycast.Instance.Parent.Parent:FindFirstChildOfClass("Humanoid")
-				if not Hum then Target = nil return end
-
-				Target = Hum.Parent
-			else
-				Target = nil
-			end
-			
+		if Target then
 			Current_Target = Target
 			Current_Target_Label.Text = "Current Target: "..tostring(Current_Target)
 			local p = game:GetService("Players"):GetPlayerFromCharacter(Current_Target)
 			Current_Morph_of_Target_Label.Text = "Current morph of Target: "..tostring(Players_List[p])
-		--end
+		end
+	end
+end)
+
+game:GetService("RunService").Stepped:Connect(function()
+	if not Mimic_Power_Enabled or Mimic_Power_Enabled == 1 then Highlight.Adornee = nil Target = nil return end
+
+	local Mouse_Origin = Get_Mouse_Origin()
+	local Raycast = workspace:Raycast(Mouse_Origin.Origin,Mouse_Origin.Direction * 100000)
+
+	if Raycast and Raycast.Instance then
+		local Hum = Raycast.Instance.Parent:FindFirstChildOfClass("Humanoid") or Raycast.Instance.Parent.Parent:FindFirstChildOfClass("Humanoid")
+		if not Hum then Highlight.Adornee = nil Target = nil return end
+
+		Target = Hum.Parent
+		Highlight.Adornee = Target
+
+		local p = game:GetService("Players"):GetPlayerFromCharacter(Hum.Parent)
+
+		if not Players_List[p] then
+			Highlight.OutlineColor = Color3.new(0.5,0.5,0.5)
+		else
+			Highlight.OutlineColor = Color3.new(1,1,1)
+		end
+	else
+		Highlight.Adornee = nil
+		Target = nil
 	end
 end)
